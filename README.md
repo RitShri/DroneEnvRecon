@@ -11,4 +11,4 @@ Step 1. Run ```python calibration.py```
  Step 2. Run ```python calcRT.py```
  - This is the environment reconstruction code. 
     The first prompt will show different camera calibration matrices applied on the fisheye camera. I am stuck on how to improve this and between which calibration matrix to choose. 
-    Then the algorithm works on calcuating the R\* and t\* between the two cameras. By using 
+    Then the algorithm works on calcuating the R\* and t\* between the two cameras. By using the 8-point algorithm and then multiplying by K and K' 
