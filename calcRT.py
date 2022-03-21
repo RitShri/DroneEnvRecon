@@ -23,49 +23,34 @@ while(fisheye.isOpened() and zed.isOpened()):
         
         # print("Need to choose which calibration matrix to use")
         # Using the OpenCV result for fisheye calibration
-        new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, DIM, np.eye(3), balance=0)
-        map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), new_K, DIM, cv2.CV_32FC1)
-        undistorted_img0 = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        cv2.imshow("(0) OpenCV result for camera calibration", undistorted_img0)
+        # new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, DIM, np.eye(3), balance=0)
+        # map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), new_K, DIM, cv2.CV_32FC1)
+        # undistorted_img0 = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        # cv2.imshow("(0) OpenCV result for camera calibration", undistorted_img0)
         
         # based on online solution for fisheye calibration
         nk = K.copy()
         nk[0,0]=K[0,0]/2
         nk[1,1]=K[1,1]/2
         map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), nk, DIM, cv2.CV_32FC1)
-        undistorted_img1 = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        cv2.imshow("(1) Scaled OpenCV calibration result", undistorted_img1)
+        undistorted_img = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-#        val = input("Enter your value (options: 0,1,2,3): ")
-#        val = int(val)
-#        if val == 0:
-#            undistorted_img = undistorted_img0
-#        elif val == 1:
-#            undistorted_img = undistorted_img1
-#        elif val == 2:
-#            undistorted_img = undistorted_img2
-#        elif val == 3:
-#            undistorted_img = undistorted_img3
-#        else:
-#            print("Enter a value between 0 and 3")
+#        # once we have the undistorted fisheye camera we can get the R* and T* between the fishey
+        fisheyereference = cv2.resize(undistorted_img,DIM)
+        zedreference = cv2.resize(zedgray,(960*2, 540))
+        zed_left = zedreference[:, 0:960]
+        zed_right = zedreference[:, 960:]
 #
-#        # once we have the undistorted fisheye camera we can get the R* and T* between the fisheye and zed
-#        fisheyereference = cv2.resize(undistorted_img,DIM)
-#        zedreference = cv2.resize(zedgray,(640*2, 480))
-#        zed_left = zedreference[:, 0:640]
-#        zed_right = zedreference[:, 640:]
-#
-#        ret_fisheye, corners_fisheye = cv2.findChessboardCorners(fisheyereference, (9,6),None)
-#        ret_zed, corners_zed = cv2.findChessboardCorners(zed_left, (9,6),None)
-#        # print(corners_fisheye, corners_zed)
-#
-#        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-#
-#        imgpoints_fish = []
-#        imgpoints_zed = []
-#
-#        if ret_fisheye and ret_zed:
-#            # print("reached here")
+        ret_fisheye, corners_fisheye = cv2.findChessboardCorners(fisheyereference, (9,6))
+        ret_zed, corners_zed = cv2.findChessboardCorners(zed_left, (9,6))
+
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+        imgpoints_fish = []
+        imgpoints_zed = []
+
+        if ret_fisheye and ret_zed:
+            print(len(corners_fisheye), len(corners_zed))
 #            corners2_fish = cv2.cornerSubPix(fisheyereference,corners_fisheye,(11,11),(-1,-1),criteria)
 #            imgpoints_fish.append(corners2_fish)
 #
@@ -81,9 +66,9 @@ while(fisheye.isOpened() and zed.isOpened()):
 #            # cv2.imshow('Chess Corners Zed',img_zed)
 #            # cv2.waitKey(500)
 #
-#            F = compute_fundamental(corners_fish, corners_zed)
+            F = compute_fundamental(corners_fish, corners_zed)
 #            # E = np.dot(np.dot(K_prime.T,F),K)
-#            print(F)
+            print(F)
 #
 #
 #
