@@ -237,6 +237,33 @@ def ComputePoseFromHomography(new_intrinsics, referencePoints, imagePoints):
         return True, R, T
     # return false if we could not compute a good estimate
     return False, None, None
+    
+def FilterByEpipolarConstraint(intrinsics, matches, points1, points2, Rx1, Tx1,
+                               threshold = 0.01):
+    E = np.cross(Tx1,Rx1,axisa=0,axisb=0)
+    fx = intrinsics[0][0]
+    fy = intrinsics[1][1]
+    cx = intrinsics[0][2]
+    cy = intrinsics[1][2]
+    
+    inlier_mask = []
+    
+    for i in matches:
+        #print(i.imgIdx, i.trainIdx, i.queryIdx)
+        u_v1 = points1[i.queryIdx]
+        u_v2 = points2[i.trainIdx]
+
+        (u1,v1) = u_v1.pt
+        (u2,v2) = u_v2.pt
+        
+        x1 = np.array([(u1 - cx)/fx, (v1 - cy)/fy,1])
+        x2 = np.array([(u2 - cx)/fx, (v2 - cy)/fy,1])
+        
+        m = (abs(x2.T @ E @ x1) < threshold).astype(int)
+        
+        inlier_mask.append(m)
+
+    return np.array(inlier_mask)
 
 ## Load the reference image that we will try to detect in the webcam
 #reference = cv2.imread('ARTrackerImage.jpg',0)
