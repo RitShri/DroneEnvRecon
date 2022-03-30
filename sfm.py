@@ -39,20 +39,24 @@ while(fisheye.isOpened()):
             current_keypoints, current_descriptors = feature_detector.detectAndCompute(undistorted_img, None)
             matches = matcher.match(reference_descriptors, current_descriptors)
             
-            # I will be using feature tracks
-            for i in matches:
-                count[i.queryIdx] += 1
-                
-            feature_tracks = []
-            for i in count.most_common():
-                # if a feature has shown up in atleast half of the frames
-                if i[1] >= num_frames / 2: # number of frames / 2
-                    feature_tracks.append(i[0])
+            # epipolar constraints
+            # calculating depth from feature matches.
             
-            # I want to get the depth of the points. Find the Z value and plot it.
-            FilterByEpipolarConstraint
-            print(len(feature_tracks))
-        num_frames += 1
+#            # I will be using feature tracks
+#            for i in matches:
+#                count[i.queryIdx] += 1
+#
+#            feature_tracks = []
+#            for i in count.most_common():
+#                # if a feature has shown up in atleast half of the frames
+#                if i[1] >= num_frames / 2: # number of frames / 2
+#                    feature_tracks.append(i[0])
+#
+#            # I want to get the depth of the points. Find the Z value and plot it.
+#            FilterByEpipolarConstraint
+            
+            #
+#        num_frames += 1
     else:
         print('Cant read the video , Exit!')
         break
