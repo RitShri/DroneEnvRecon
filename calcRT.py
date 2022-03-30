@@ -5,8 +5,10 @@ import json
 import CalibrationHelpers as calib
 from ARImagePoseTracker import ProjectPoints, ComputePoseFromHomography, compute_fundamental, compute_fundamental_normalized, eight_point_algorithm
 
-fisheye = cv2.VideoCapture('./data/recording6/fisheye_video.avi')
-zed = cv2.VideoCapture('./data/recording6/zed_video.avi')
+num_image = 0
+max_image = 8
+fisheye = cv2.imread("calib_fish/"+"calib_image_fish_" + str(num_image) + ".png")
+zed = cv2.imread("calib_zed/"+"calib_image_zed_" + str(num_image) + ".png")
 
 DIM=(960, 540)
 K, D, roi, new_intrinsics = calib.LoadCalibrationData('calib')
@@ -15,9 +17,14 @@ zed_calib = json.load(f)
 K_zed_l, D_zed_l = zed_calib['K'], zed_calib['D']
 f.close()
 
-while(fisheye.isOpened() and zed.isOpened()):
-    ret, frame = fisheye.read()
-    zedret, zedframe = zed.read()
+while(num_image<max_image):
+    num_image += 1
+
+    frame = fisheye
+    zedframe = zed
+
+    fisheye = cv2.imread("calib_fish/"+"calib_image_fish_" + str(num_image) + ".png")
+    zed = cv2.imread("calib_zed/"+"calib_image_zed_" + str(num_image) + ".png")
     
     if ret and zedret:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

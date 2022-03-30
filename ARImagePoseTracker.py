@@ -6,7 +6,7 @@ import numpy as np
 def calibrate_pt(K, pts):
     K_inv = np.linalg.inv(K)
 
-    pts_tilde = (K_inv @ np.concatenate([pts, np.ones([pts.shape[0], 1])], axis=1).T).T
+    pts_tilde = np.dot((K_inv, np.concatenate([pts, np.ones([pts.shape[0], 1])], axis=1).T)).T
     pts_tilde = pts_tilde[:, :2]
 
     return pts_tilde
@@ -59,7 +59,7 @@ def eight_point_algorithm(pts0, pts1, K_fish, K_zed):
     u_E, s_E, vh_E = np.linalg.svd(E)
     s_E = np.diag((1, 1, 0)) # Re-project
     # Don't need to calculate this
-    E = u_E @ s_E @ vh_E
+    E = np.dot(np.dot(u_E,s_E),vh_E)
 
     def Rz(theta):
         return np.array([
@@ -69,16 +69,16 @@ def eight_point_algorithm(pts0, pts1, K_fish, K_zed):
         ])
 
     Ts = [
-        unhat(u_E@Rz(np.pi/2)@s_E@u_E.T),
-        unhat(u_E@Rz(np.pi/2)@s_E@u_E.T),
-        unhat(u_E@Rz(-np.pi/2)@s_E@u_E.T),
-        unhat(u_E@Rz(-np.pi/2)@s_E@u_E.T)
+        unhat(np.dot(np.dot(np.dot(u_E,Rz(np.pi/2)),s_E),u_E.T)),
+        unhat(np.dot(np.dot(np.dot(u_E,Rz(np.pi/2)),s_E),u_E.T)),
+        unhat(np.dot(np.dot(np.dot(u_E,Rz(-np.pi/2)),s_E),u_E.T)),
+        unhat(np.dot(np.dot(np.dot(u_E,Rz(-np.pi/2)),s_E),u_E.T))
     ]
     Rs = [
-        u_E@Rz(np.pi/2).T@vh_E,
-        u_E@Rz(-np.pi/2).T@vh_E,
-        u_E@Rz(np.pi/2).T@vh_E,
-        u_E@Rz(-np.pi/2).T@vh_E,
+        np.dot(np.dot(u_E,Rz(np.pi/2).T),vh_E),
+        np.dot(np.dot(u_E,Rz(-np.pi/2).T),vh_E),
+        np.dot(np.dot(u_E,Rz(np.pi/2).T),vh_E),
+        np.dot(np.dot(u_E,Rz(-np.pi/2).T),vh_E),
     ]
 
     return Rs, Ts
