@@ -1,7 +1,88 @@
 import cv2
 import numpy as np
 import CalibrationHelpers as calib
+import numpy as np
 
+def calibrate_pt(K, pts):
+    K_inv = np.linalg.inv(K)
+
+    pts_tilde = (K_inv @ np.concatenate([pts, np.ones([pts.shape[0], 1])], axis=1).T).T
+    pts_tilde = pts_tilde[:, :2]
+
+    return pts_tilde
+
+def hat(v):
+    return np.array([
+        [0, -v[2], v[1]],
+        [v[2], 0, -v[0]],
+        [-v[1], v[0], 0]
+    ])
+
+def unhat(Ahat):
+    a3 = -Ahat[0,1]
+    a2 = Ahat[0,2]
+    a1 = -Ahat[1,2]
+    return np.array([a1, a2, a3])
+
+def eight_point_algorithm(pts0, pts1, K_fish, K_zed):
+    """
+    Implement the eight-point algorithm
+    Args:
+        pts0 (np.ndarray): shape (num_matched_points, 2)
+        pts1 (np.ndarray): shape (num_matched_points, 2)
+        K (np.ndarray): 3x3 intrinsic matrix
+    Returns:
+        Rs (list): a list of possible rotation matrices
+        Ts (list): a list of possible translation matrices
+    """
+    # apply k inverse to points
+    pts0_tilde = calibrate_pt(K_fish, pts0)
+    pts1_tilde = calibrate_pt(K_zed, pts1)
+
+    A = np.array([[x1*x2, x1*y2, x1, y1*x2, y1*y2, y1, x2, y2, 1]
+                    for ((x1, y1), (x2, y2)) in zip(pts0_tilde, pts1_tilde)])
+    
+    # SVD
+    u_A, s_A, vh_A = np.linalg.svd(A)
+
+    # Take last column of V
+    Es = vh_A[-1,:]
+
+    # Unstack Es
+    E = np.array([
+            [Es[0],Es[3],Es[6]],
+            [Es[1],Es[4],Es[7]],
+            [Es[2],Es[5],Es[8]]
+        ])
+
+    # Re-project aka eigenvalues are 1, 1, 0
+    u_E, s_E, vh_E = np.linalg.svd(E)
+    s_E = np.diag((1, 1, 0)) # Re-project
+    # Don't need to calculate this
+    E = u_E @ s_E @ vh_E
+
+    def Rz(theta):
+        return np.array([
+            [np.cos(theta), -np.sin(theta), 0],
+            [np.sin(theta), np.cos(theta),  0],
+            [0,             0,              1]
+        ])
+
+    Ts = [
+        unhat(u_E@Rz(np.pi/2)@s_E@u_E.T),
+        unhat(u_E@Rz(np.pi/2)@s_E@u_E.T),
+        unhat(u_E@Rz(-np.pi/2)@s_E@u_E.T),
+        unhat(u_E@Rz(-np.pi/2)@s_E@u_E.T)
+    ]
+    Rs = [
+        u_E@Rz(np.pi/2).T@vh_E,
+        u_E@Rz(-np.pi/2).T@vh_E,
+        u_E@Rz(np.pi/2).T@vh_E,
+        u_E@Rz(-np.pi/2).T@vh_E,
+    ]
+
+    return Rs, Ts
+    
 def compute_fundamental(x1,x2):
     """    Computes the fundamental matrix from corresponding points
         (x1,x2 3*n arrays) using the 8 point algorithm.

@@ -1,15 +1,19 @@
 import cv2
 import numpy as np
+import json
 
 import CalibrationHelpers as calib
-from ARImagePoseTracker import ProjectPoints, ComputePoseFromHomography, compute_fundamental, compute_fundamental_normalized
+from ARImagePoseTracker import ProjectPoints, ComputePoseFromHomography, compute_fundamental, compute_fundamental_normalized, eight_point_algorithm
 
 fisheye = cv2.VideoCapture('./data/recording6/fisheye_video.avi')
 zed = cv2.VideoCapture('./data/recording6/zed_video.avi')
 
 DIM=(960, 540)
 K, D, roi, new_intrinsics = calib.LoadCalibrationData('calib')
-
+f = open('calib/zed_left_calib.json')
+zed_calib = json.load(f)
+K_zed_l, D_zed_l = zed_calib['K'], zed_calib['D']
+f.close()
 
 while(fisheye.isOpened() and zed.isOpened()):
     ret, frame = fisheye.read()
@@ -19,14 +23,7 @@ while(fisheye.isOpened() and zed.isOpened()):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         zedgray = cv2.cvtColor(zedframe, cv2.COLOR_BGR2GRAY)
         
-        # cv2.imshow("Distorted", gray)
-        
-        # print("Need to choose which calibration matrix to use")
-        # Using the OpenCV result for fisheye calibration
-        # new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, DIM, np.eye(3), balance=0)
-        # map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), new_K, DIM, cv2.CV_32FC1)
-        # undistorted_img0 = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        # cv2.imshow("(0) OpenCV result for camera calibration", undistorted_img0)
+#        cv2.imshow("Distorted", gray)
         
         # based on online solution for fisheye calibration
         nk = K.copy()
@@ -51,11 +48,11 @@ while(fisheye.isOpened() and zed.isOpened()):
 
         if ret_fisheye and ret_zed:
             print(len(corners_fisheye), len(corners_zed))
-#            corners2_fish = cv2.cornerSubPix(fisheyereference,corners_fisheye,(11,11),(-1,-1),criteria)
-#            imgpoints_fish.append(corners2_fish)
+            corners2_fish = cv2.cornerSubPix(fisheyereference,corners_fisheye,(11,11),(-1,-1),criteria)
+            imgpoints_fish.append(corners2_fish)
 #
-#            corners2_zed = cv2.cornerSubPix(zed_left,corners_zed,(11,11),(-1,-1),criteria)
-#            imgpoints_zed.append(corners2_zed)
+            corners2_zed = cv2.cornerSubPix(zed_left,corners_zed,(11,11),(-1,-1),criteria)
+            imgpoints_zed.append(corners2_zed)
 #
 #            # Draw and display the corners
 #            # print(corners2_fish, corners2_zed)
@@ -65,8 +62,11 @@ while(fisheye.isOpened() and zed.isOpened()):
 #            # img_zed = cv2.drawChessboardCorners(zed_left, (6,9), corners2_zed,ret_zed)
 #            # cv2.imshow('Chess Corners Zed',img_zed)
 #            # cv2.waitKey(500)
-#
-            F = compute_fundamental(corners_fish, corners_zed)
+
+            Rs, Ts = eight_point_algorithm(corners2_fish, corners2_zed, K, K_zed_l)
+            print(Rs, Ts)
+            
+            F = compute_fundamental(corners_fisheye, corners_zed)
 #            # E = np.dot(np.dot(K_prime.T,F),K)
             print(F)
 #
