@@ -17,11 +17,7 @@ K, D, roi, new_intrinsics = calib.LoadCalibrationData('calib')
 first_frame = None
 ff = None
 
-count = collections.Counter()
-num_frames = 0
-matrix_matches = {}
-rotations = []
-translations = []
+
 
 def get_M(intrinsic, matrix_matches):
     fx = K[0][0]
@@ -56,8 +52,15 @@ def get_M(intrinsic, matrix_matches):
         counter1 += 1
 
     return M
-
-
+    
+count = collections.Counter()
+num_frames = 0
+matrix_matches = {}
+rotations = []
+translations = []
+ref_r = None
+ref_t = None
+reference_keypoints = None
 while(fisheye.isOpened()):
     ret, frame = fisheye.read()
     
@@ -68,8 +71,7 @@ while(fisheye.isOpened()):
         nk[1,1]=K[1,1]/2
         map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), nk, DIM, cv2.CV_32FC1)
         undistorted_img = cv2.remap(gray, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        ref_r = None
-        ref_t = None
+        
         
         # sets the first frame as my (0,0)
         if ff == None:
@@ -77,6 +79,8 @@ while(fisheye.isOpened()):
             first_frame = undistorted_img
             ff = True
             reference_keypoints, reference_descriptors = feature_detector.detectAndCompute(first_frame, None)
+            matches = matcher.match(reference_descriptors, reference_descriptors)
+
             referencePoints = np.float32([reference_keypoints[m.queryIdx].pt \
                                   for m in matches])
              # convert positions from pixels to meters
@@ -103,63 +107,39 @@ while(fisheye.isOpened()):
             # compute homography
             ret, R, T = ComputePoseFromHomography(new_intrinsics,referencePoints,
                                             imagePoints)
-            
-            relative_rotation = np.matmul(R, ref_r.T)
-            relative_translation = T - np.dot(np.matmul(R, ref_r.T), ref_t)
-            
-            # epipolar constraints
-            # calculating depth from feature matches.
-            for i in matches:
-               count[i.queryIdx] += 1
-            
-            feature_tracks = []
-            for i in count.most_common():
-                # if a feature has shown up in atleast half of the frames
-                if i[1] >= num_frames / 2: # number of frames / 2
-                    feature_tracks.append(i[0])
-            
-            match1 = []
-            
-            for i in matches:
-                if i.queryIdx in feature_tracks:
-                    match1.append(i)
-                    if i.queryIdx in matrix_matches:
-                        matrix_matches[i.queryIdx] += [(i,reference_keypoints,current_keypoints,relative_rotation,relative_translation)]
-                    else:
-                        matrix_matches[i.queryIdx] = [(i,reference_keypoints,current_keypoints,relative_rotation,relative_translation)]
+            if ret:
+                relative_rotation = np.matmul(R, ref_r.T)
+                relative_translation = T - np.dot(np.matmul(R, ref_r.T), ref_t)
+                
+                # epipolar constraints
+                # calculating depth from feature matches.
+                for i in matches:
+                   count[i.queryIdx] += 1
+                
+                feature_tracks = []
+                for i in count.most_common():
+                    # if a feature has shown up in atleast half of the frames
+                    if i[1] >= num_frames / 2: # number of frames / 2
+                        feature_tracks.append(i[0])
+                
+                match1 = []
+                
+                for i in matches:
+                    if i.queryIdx in feature_tracks:
+                        match1.append(i)
+                        if i.queryIdx in matrix_matches:
+                            matrix_matches[i.queryIdx] += [(i,reference_keypoints,current_keypoints,relative_rotation,relative_translation)]
+                        else:
+                            matrix_matches[i.queryIdx] = [(i,reference_keypoints,current_keypoints,relative_rotation,relative_translation)]
 
 
-            inlier_mask = FilterByEpipolarConstraint(K,
-                                                    match1, 
-                                                    reference_keypoints,
-                                                    current_keypoints,
-                                                    relative_rotation, 
-                                                    relative_translation)
-            M = get_M(K, matrix_matches)
-            W,U,Vt = cv2.SVDecomp(M)  
-            depths = Vt[-1,:]/Vt[-1,-1]
-            
-
-            your_pointCloud = []
-            count = 0
-            fx = K[0][0]
-            fy = K[1][1]
-            cx = K[0][2]
-            cy = K[1][2]
-            for i in matrix_matches:
-                (u1,v1) = (reference_keypoints[i]).pt
-                x1 = np.array([(u1 - cx)/fx, (v1 - cy)/fy,1])
-                your_pointCloud.append(np.multiply(depths[count],x1))
-                count += 1
-
-            your_pointCloud = np.array(your_pointCloud)
-
-
-            #part 3.10
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(your_pointCloud)
-            o3d.visualization.draw_geometries([pcd])
-#        num_frames += 1
+                inlier_mask = FilterByEpipolarConstraint(K,
+                                                        match1,
+                                                        reference_keypoints,
+                                                        current_keypoints,
+                                                        relative_rotation,
+                                                        relative_translation)
+        num_frames += 1
     else:
         print('Cant read the video , Exit!')
         break
@@ -167,6 +147,33 @@ while(fisheye.isOpened()):
     # Stop the program on the ESC key or 'q'
     if keyCode == 27 or keyCode == ord('q'):
         break
+        
+print(len(matrix_matches))
+M = get_M(K, matrix_matches)
+W,U,Vt = cv2.SVDecomp(M)
+depths = Vt[-1,:]/Vt[-1,-1]
+    
+    
+your_pointCloud = []
+count2 = 0
+fx = K[0][0]
+fy = K[1][1]
+cx = K[0][2]
+cy = K[1][2]
+for i in matrix_matches:
+    (u1,v1) = (reference_keypoints[i]).pt
+    x1 = np.array([(u1 - cx)/fx, (v1 - cy)/fy,1])
+    your_pointCloud.append(np.multiply(depths[count2],x1))
+    count2 += 1
+    
+print(your_pointCloud)
+your_pointCloud = np.array(your_pointCloud)
+
+
+#part 3.10
+pcd = o3d.geometry.PointCloud()
+pcd.points = o3d.utility.Vector3dVector(your_pointCloud)
+o3d.visualization.draw_geometries([pcd])
 fisheye.release()
 cv2.destroyAllWindows()
 
