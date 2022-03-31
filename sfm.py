@@ -65,7 +65,7 @@ while(fisheye.isOpened()):
     ret, frame = fisheye.read()
     
     if ret:
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2GRAY)
         nk = K.copy()
         nk[0,0]=K[0,0]/2
         nk[1,1]=K[1,1]/2
@@ -75,7 +75,6 @@ while(fisheye.isOpened()):
         
         # sets the first frame as my (0,0)
         if ff == None:
-            print(True)
             first_frame = undistorted_img
             ff = True
             reference_keypoints, reference_descriptors = feature_detector.detectAndCompute(first_frame, None)
@@ -105,9 +104,10 @@ while(fisheye.isOpened()):
             imagePoints = np.float32([current_keypoints[m.trainIdx].pt \
                                     for m in matches])
             # compute homography
-            ret, R, T = ComputePoseFromHomography(new_intrinsics,referencePoints,
+            ret_new, R, T = ComputePoseFromHomography(new_intrinsics,referencePoints,
                                             imagePoints)
-            if ret:
+                                            
+            if ret_new:
                 relative_rotation = np.matmul(R, ref_r.T)
                 relative_translation = T - np.dot(np.matmul(R, ref_r.T), ref_t)
                 
@@ -139,6 +139,33 @@ while(fisheye.isOpened()):
                                                         current_keypoints,
                                                         relative_rotation,
                                                         relative_translation)
+#                M = get_M(K, matrix_matches)
+#                W,U,Vt = cv2.SVDecomp(M)
+#                depths = Vt[-1,:]/Vt[-1,-1]
+##                print(depths)
+#
+#                your_pointCloud = []
+#                count2 = 0
+#                fx = K[0][0]
+#                fy = K[1][1]
+#                cx = K[0][2]
+#                cy = K[1][2]
+#                for i in matrix_matches:
+#                    (u1,v1) = (reference_keypoints[i]).pt
+#                    x1 = np.array([(u1 - cx)/fx, (v1 - cy)/fy,1])
+#                    your_pointCloud.append(np.multiply(depths[count2],x1))
+#                    count2 += 1
+#
+##                print(your_pointCloud)
+#                your_pointCloud = np.array(your_pointCloud)
+#
+#                #part 3.10
+#                pcd = o3d.geometry.PointCloud()
+#                pcd.points = o3d.utility.Vector3dVector(np.random.randn(500,3))
+##                print(len(pcd.points))
+#                o3d.visualization.draw_geometries([pcd])
+#                fisheye.release()
+#                cv2.destroyAllWindows()
         num_frames += 1
     else:
         print('Cant read the video , Exit!')
@@ -148,7 +175,6 @@ while(fisheye.isOpened()):
     if keyCode == 27 or keyCode == ord('q'):
         break
         
-print(len(matrix_matches))
 M = get_M(K, matrix_matches)
 W,U,Vt = cv2.SVDecomp(M)
 depths = Vt[-1,:]/Vt[-1,-1]
@@ -166,7 +192,6 @@ for i in matrix_matches:
     your_pointCloud.append(np.multiply(depths[count2],x1))
     count2 += 1
     
-print(your_pointCloud)
 your_pointCloud = np.array(your_pointCloud)
 
 
