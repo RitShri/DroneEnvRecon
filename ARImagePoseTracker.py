@@ -265,6 +265,52 @@ def FilterByEpipolarConstraint(intrinsics, matches, points1, points2, Rx1, Tx1,
 
     return np.array(inlier_mask)
 
+def get_M(intrinsic, matrix_matches):
+    fx = intrinsic[0][0]
+    fy = intrinsic[1][1]
+    cx = intrinsic[0][2]
+    cy = intrinsic[1][2]
+    
+    total = 0
+    for i in matrix_matches:
+        total += len(matrix_matches[i])
+    M = np.zeros((3*total, len(matrix_matches) + 1))
+    
+    counter1 = 0
+    counter2 = 0
+    for i in matrix_matches:
+        for j in matrix_matches[i]:
+            m = j[0]
+            (u1,v1) = j[1][m.queryIdx].pt
+            (u2,v2) = j[2][m.trainIdx].pt
+        
+            x1 = np.array([(u1 - cx)/fx, (v1 - cy)/fy,1])
+            x2 = np.array([(u2 - cx)/fx, (v2 - cy)/fy,1])
+            R = j[3]
+            T = j[4]
+            
+            a = np.cross(x2, np.matmul(R,x1))
+            b = np.cross(x2, T)
+
+            M[counter2:counter2+3, counter1] = a.T
+            M[counter2:counter2+3, len(matrix_matches)] = b.T
+            counter2 += 3
+        counter1 += 1
+    
+    return M
+    
+def in_front_of_both_cameras(first_points, second_points, rot, trans):
+    # check if the point correspondences are in front of both images
+    rot_inv = rot
+    for first, second in zip(first_points, second_points):
+        first_z = np.dot(rot[0, :] - second[0]*rot[2, :], trans) / np.dot(rot[0, :] - second[0]*rot[2, :], second)
+        first_3d_point = np.array([first[0] * first_z, second[0] * first_z, first_z])
+        second_3d_point = np.dot(rot.T, first_3d_point) - np.dot(rot.T, trans)
+
+        if first_3d_point[2] < 0 or second_3d_point[2] < 0:
+            return False
+
+    return True
 ## Load the reference image that we will try to detect in the webcam
 #reference = cv2.imread('ARTrackerImage.jpg',0)
 #RES = 480
