@@ -4,6 +4,8 @@ import glob
 from datetime import datetime
 import json
 import os
+import sys
+from pynput import keyboard
 
 """ 
 gstreamer_pipeline returns a GStreamer pipeline for capturing from the CSI camera
@@ -12,6 +14,29 @@ display_width and display_height determine the size of each camera pane in the w
 Default 1920x1080 displayd in a 1/4 size window
 """
 
+take_image = False
+break_loop = False
+
+def on_press(key):
+    global take_image
+    global break_loop
+    if key == keyboard.Key.esc:
+        return False  # stop listener
+    try:
+        k = key.char  # single-char keys
+    except:
+        k = key.name  # other keys
+    if k in ['q']:  # keys of interest
+        # self.keys.append(k)  # store it in global-like variable
+        print('Key pressed: ' + k)
+        break_loop = True
+    if k in ['s']:
+        print('Key pressed: ' + k)
+        take_image = True
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()  # start to listen on a separate thread
+#listener.join()  # remove if main thread is polling self.keys
 def gstreamer_pipeline(
     sensor_id=0,
     capture_width=3264,
@@ -44,6 +69,8 @@ def gstreamer_pipeline(
 # directory: should be a string corresponding to the name of an existing 
 # directory
 def CaptureImages(directory):
+	global take_image
+	global break_loop
     # Open the camera for capture
     # the 0 value should default to the webcam, but you may need to change this
     # for your camera, especially if you are using a camera besides the default
@@ -59,15 +86,15 @@ def CaptureImages(directory):
 	    cv2.imshow("Display", frame)
 	    # wait for 1ms or key press
 	    k = cv2.waitKey(1) #k is the key pressed
-	    if k == 27 or k==113:  #27, 113 are ascii for escape and q respectively
-	        #exit
+	    if k == 27 or k==113 or break_loop:  #27, 113 are ascii for escape and q respectively
 	        break
-	    elif k == 32: #32 is ascii for space
+	    elif k == 32 or take_image: #32 is ascii for space
 	        #record image
 	        img_name = "calib_image_fish_{}.png".format(img_counter)
 	        cv2.imwrite(directory+'/'+img_name, frame)
 	        print("Writing: {}".format(directory+'/'+img_name))
 	        img_counter += 1
+	        take_image = False
 	cam.release()
 
 def calibrate_images(CHECKERBOARD, directory):

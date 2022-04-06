@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import pyzed.sl as sl
 import cv2
+from pynput import keyboard
 
 help_string = "[s] Save side by side image"
 path = "./"
@@ -11,6 +12,31 @@ mode_point_cloud = 0
 mode_depth = 0
 point_cloud_format_ext = ".ply"
 depth_format_ext = ".png"
+
+take_image = False
+break_loop = False
+
+def on_press(key):
+    global take_image
+    global break_loop
+    if key == keyboard.Key.esc:
+        return False  # stop listener
+    try:
+        k = key.char  # single-char keys
+    except:
+        k = key.name  # other keys
+    if k in ['q']:  # keys of interest
+        # self.keys.append(k)  # store it in global-like variable
+        print('Key pressed: ' + k)
+        break_loop = True
+    if k in ['s']:
+        print('Key pressed: ' + k)
+        take_image = True
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()  # start to listen on a separate thread
+#listener.join()  # remove if main thread is polling self.keys
+
 
 def save_sbs_image(zed, filename) :
     image_sl_left = sl.Mat()
@@ -22,7 +48,7 @@ def save_sbs_image(zed, filename) :
 
 def process_key_event(zed, key) :
     global count_save
-    if key == 115:
+    if key == 115 or take_image:
         save_sbs_image(zed, "calib_image_zed_" + str(count_save) + ".png")
         count_save += 1
 
@@ -68,7 +94,17 @@ def main() :
     point_cloud = sl.Mat()
 
     key = ' '
-    while key != 113 :
+    while key != ord("q") :
+        r = ""
+        #print(break_loop)
+        #print(take_image) 
+        #try:
+            #if not sys.stdin.isatty():
+            #    for line in sys.stdin:
+            #        r += line
+            #        print(line)
+        #except EOFError as e:
+        r = "g"
         err = zed.grab(runtime)
         if err == sl.ERROR_CODE.SUCCESS :
             zed.retrieve_image(image_zed, sl.VIEW.LEFT, sl.MEM.CPU, image_size)
@@ -76,7 +112,8 @@ def main() :
             cv2.imshow("Image", image_ocv)
             key = cv2.waitKey(10)
             process_key_event(zed, key)
-
+        if(break_loop):
+            break
     cv2.destroyAllWindows()
     zed.close()
 
