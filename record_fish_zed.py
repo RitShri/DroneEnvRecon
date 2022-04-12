@@ -8,18 +8,23 @@ from datetime import datetime
 from multiprocessing import Process
 from subprocess import Popen, PIPE
 import time
+from pynput.keyboard import Key, Controller
+
+
 
 if __name__ == "__main__":
     processes = [Popen(['python3 zed_capture.py'], stdin=PIPE,shell=True), 
 		 Popen(['python calibration.py'], stdin=PIPE,shell=True)]
-    time.sleep(5)
-    r = ""
-    i = 0
+    '''
+    time.sleep(30)
+    keyboard = Controller()
+    for i in range(10):
+        keyboard.press('s')
+        keyboard.release('s')
+        time.sleep(1)
     
-    time.sleep(60)
-    processes[1].stdin.write("exit")
-    processes[1].terminate()
-    processes[0].stdin.write("exit")
-    processes[0].terminate()
-    # does not kill the process properly
+    keyboard.press('q')
+    keyboard.release('q')
+    '''
+    # use s to screenshot q to kill
 
