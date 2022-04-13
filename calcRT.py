@@ -20,7 +20,7 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
     return True
 
 num_image = 0
-max_image = 8
+max_image = 52 #change this num
 fisheye = cv2.imread("calib_fish/"+"calib_image_fish_" + str(num_image) + ".png")
 zed = cv2.imread("calib_zed/"+"calib_image_zed_" + str(num_image) + ".png")
 
@@ -33,6 +33,8 @@ zed_calib = json.load(f)
 K_zed_l, D_zed_l = zed_calib['K'], zed_calib['D']
 K_inv_zed = np.linalg.inv(K_zed_l)
 f.close()
+
+r_t_dict =  {}
 
 while(num_image<max_image):
     num_image += 1
@@ -128,6 +130,7 @@ while(num_image<max_image):
 		    T = - U[:, 2]
         print("R", R)
         print("T", T)
+	r_t_dict[num_image] = (R.tolist(),T.tolist())
 	'''
 	R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(K, D, K_zed_l, D_zed_l, fisheye.shape[:2], R, T, alpha=1.0)
 	mapx1, mapy1 = cv2.initUndistortRectifyMap(K, D, R1, K_zed_l, fisheye.shape[:2], cv2.CV_32F)
@@ -155,3 +158,9 @@ while(num_image<max_image):
         break
 
 cv2.destroyAllWindows()
+
+json_data = {}
+json_data['R_T_DICT'] = r_t_dict
+json_string = json.dumps(json_data)
+with open('zed_time.json', 'w') as  outfile:
+     outfile.write(json_string)

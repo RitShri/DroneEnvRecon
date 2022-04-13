@@ -48,9 +48,12 @@ def save_sbs_image(zed, filename) :
 
 def process_key_event(zed, key) :
     global count_save
+    global take_image
+    #print(take_image)
     if key == 115 or take_image:
         save_sbs_image(zed, "calib_image_zed_" + str(count_save) + ".png")
         count_save += 1
+        take_image = False
 
 def print_help() :
     print(" Press 's' to save Side by side images")
@@ -96,6 +99,7 @@ def main() :
     key = ' '
     while key != ord("q") :
         r = ""
+        
         #print(break_loop)
         #print(take_image) 
         #try:
