@@ -3,6 +3,59 @@ import numpy as np
 import CalibrationHelpers as calib
 import numpy as np
 
+def find_3d_points(points1, points2, P1, P2):
+    def construct_Ab(points, P):
+        x, y = points
+ 
+        A = np.array([[P[0,0] - P[2,0] * x, P[0, 1] - P[2,1] * x, P[0,2] - P[2,2] * x,  P[0,3] - P[2,3] * x],
+                      [P[1,0] - P[2,0] * y, P[1, 1] - P[2,1] * y, P[1,2] - P[2,2] * y,  P[1,3] - P[2,3] * y]])
+
+#        b = np.array([[P[0,3] - P[2,3] * x],
+#                      [P[1,3] - P[2,3] * x]])
+        return A #, b
+
+    points3D = []
+    rec_err = []
+    for p1, p2 in zip(points1, points2):
+    
+        A1 = construct_Ab(p1, P1)
+        A2 = construct_Ab(p2, P2)
+        
+#        A = np.array([A1,A2]).reshape((4,3))
+#        b = np.array([b1,b2]).reshape((4,1))
+
+        A = np.array([A1,A2]).reshape((4,4))
+        u_A, s_A, vh_A = np.linalg.svd(A)
+        pt3d = vh_A[-1,:]
+        pt3d = pt3d / pt3d[3] # Normalize by last number in column (should be 1)
+        
+#        point3d = np.linalg.lstsq(A,b, rcond=None)[0]
+#        point3d = np.append(point3d,1)
+        point3d = pt3d
+        points3D.append(point3d)
+#        print(pt3d)
+        
+        # project the 3D points onto 2D
+#        print(P1)
+#        print(P2)
+        
+        reproj1 = P1 @ point3d
+        reproj2 = P2 @ point3d
+        reproj1 = reproj1[:2] / reproj1[2]
+        reproj2 = reproj2[:2] / reproj2[2]
+        # TODO this is not working
+#        print(reproj1, p1)
+#        print(reproj2, p2)
+
+        res_1 = np.linalg.norm(reproj1[:2]-p1)
+        res_2 = np.linalg.norm(reproj2[:2]-p2)
+        rec_err.append(res_1)
+        rec_err.append(res_2)
+    
+        
+    return np.array(points3D), np.sum(rec_err) / len(rec_err)
+
+
 def calibrate_pt(K, pts):
     K_inv = np.linalg.inv(K)
 
