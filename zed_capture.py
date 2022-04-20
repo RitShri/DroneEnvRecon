@@ -56,15 +56,23 @@ def process_key_event(zed, key) :
         take_image = False
 
         #Get R,T per frame
-        zed.get_position(zed_pose, sl.REFERENCE_FRAME.WORLD)
+        zed.get_position(zed_pose, sl.REFERENCE_FRAME.CAMERA)
         zed.get_sensors_data(zed_sensors, sl.TIME_REFERENCE.IMAGE)
-        
+
         py_translation = sl.Translation()
         translationMat = zed_pose.get_translation(py_translation).get()
+
         py_rotation = sl.Rotation()
-        rotationMat = zed_pose.get_rotation(py_rotation).get()
+        rotationMat = zed_pose.get_rotation_matrix(py_rotation).r
+
+        #py_orientation = sl.Orientation()
+        #orientationMat = zed_pose.get_orientation(py_orientation).get()
         print("Rotation {0}, Translation {1}".format(rotationMat, translationMat))
 
+        #IMUOrient = zed_sensors.get_imu_data().get_pose().get_orientation().get()
+        #IMUTrans = zed_sensors.get_imu_data().get_pose().get_translation().get()
+        #IMURot = zed_sensors.get_imu_data().get_pose().get_rotation().get()
+        #print("IMU: Orientation {1}, Translation {0}".format(IMUTrans, IMUOrient))
 
 def print_help() :
     print(" Press 's' to save Side by side images")
@@ -81,7 +89,8 @@ def main() :
     init = sl.InitParameters(input_t=input_type)
     init.camera_resolution = sl.RESOLUTION.HD1080
     init.depth_mode = sl.DEPTH_MODE.PERFORMANCE
-    init.coordinate_units = sl.UNIT.MILLIMETER
+    init.coordinate_units = sl.UNIT.METER
+    #init.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_DOWN
 
     # Open the camera
     err = zed.open(init)
