@@ -2,7 +2,12 @@ import sys
 import numpy as np
 import pyzed.sl as sl
 import cv2
+import time
 from pynput import keyboard
+import datetime
+import pause
+
+
 
 help_string = "[s] Save side by side image"
 path = "./"
@@ -15,6 +20,9 @@ depth_format_ext = ".png"
 
 take_image = False
 break_loop = False
+
+
+point_cloud_mats = []
 
 def on_press(key):
     global take_image
@@ -37,7 +45,33 @@ listener = keyboard.Listener(on_press=on_press)
 listener.start()  # start to listen on a separate thread
 #listener.join()  # remove if main thread is polling self.keys
 
-
+def save_point_cloud(zed, filename) :
+    #print("Saving Point Cloud...")
+    tmp = sl.Mat()
+    critical_time = datetime.datetime.utcnow()+datetime.timedelta(seconds=1)
+    critical_time.replace(microsecond=0)
+    while(datetime.datetime.utcnow() < critical_time):
+        continue
+    zed.retrieve_measure(tmp, sl.MEASURE.XYZRGBA)
+    print("zed milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+    point_cloud_mats.append(tmp)
+    #print("Got Point Cloud in var...")
+    '''
+    saved = (tmp.write("calib_zed"+'/'+filename + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
+    if saved :
+        print("Done")
+    else :
+        print("Failed... Please check that you have permissions to write on disk")
+    '''
+def write_point_cloud(zed, filename):
+    global count_save
+    for tmp in point_cloud_mats:
+        saved = (tmp.write("calib_zed"+'/'+filename + str(count_save) + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
+        count_save += 1
+        if saved :
+            print("Saved")
+        else :
+            print("Failed... Please check that you have permissions to write on disk")
 def save_sbs_image(zed, filename) :
     image_sl_left = sl.Mat()
     zed.retrieve_image(image_sl_left, sl.VIEW.LEFT)
@@ -51,9 +85,9 @@ def process_key_event(zed, key) :
     global take_image
     #print(take_image)
     if key == 115 or take_image:
-        save_sbs_image(zed, "calib_image_zed_" + str(count_save) + ".png")
-        count_save += 1
-        take_image = False
+        save_point_cloud(zed, "calib_image_zed_" + str(count_save))
+        #count_save += 1
+        #take_image = False
 
 def print_help() :
     print(" Press 's' to save Side by side images")
@@ -111,13 +145,16 @@ def main() :
         r = "g"
         err = zed.grab(runtime)
         if err == sl.ERROR_CODE.SUCCESS :
-            zed.retrieve_image(image_zed, sl.VIEW.LEFT, sl.MEM.CPU, image_size)
-            image_ocv = image_zed.get_data()
-            cv2.imshow("Image", image_ocv)
+            if(not take_image):
+                zed.retrieve_image(image_zed, sl.VIEW.LEFT, sl.MEM.CPU, image_size)
+                image_ocv = image_zed.get_data()
+                cv2.imshow("Image", image_ocv)
             key = cv2.waitKey(10)
-            process_key_event(zed, key)
+            if(take_image):
+                process_key_event(zed, key)
         if(break_loop):
             break
+    write_point_cloud(zed, "calib_image_zed_")
     cv2.destroyAllWindows()
     zed.close()
 

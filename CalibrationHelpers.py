@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
 import glob
-from datetime import datetime
+import datetime
 import json
+import time
 import os
 import sys
 from pynput import keyboard
+import pause
 
 """ 
 gstreamer_pipeline returns a GStreamer pipeline for capturing from the CSI camera
@@ -77,24 +79,38 @@ def CaptureImages(directory):
 
 	cam = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
 	img_counter = 0
+	img_to_write = []
 	# Read until user quits
 	while True:
 	    ret, frame = cam.read()
 	    if not ret:
 	        break
 	    # display the current image
-	    cv2.imshow("Display", frame)
+	    if(not take_image):
+	        cv2.imshow("Display", frame)
 	    # wait for 1ms or key press
-	    k = cv2.waitKey(1) #k is the key pressed
+	    k = cv2.waitKey(10) #k is the key pressed
 	    if k == 27 or k==113 or break_loop:  #27, 113 are ascii for escape and q respectively
 	        break
 	    elif k == 32 or take_image: #32 is ascii for space
 	        #record image
-	        img_name = "calib_image_fish_{}.png".format(img_counter)
-	        cv2.imwrite(directory+'/'+img_name, frame)
-	        print("Writing: {}".format(directory+'/'+img_name))
-	        img_counter += 1
-	        take_image = False
+	        critical_time = datetime.datetime.utcnow()+datetime.timedelta(seconds=1)
+	        critical_time.replace(microsecond=0)
+	        while(datetime.datetime.utcnow() < critical_time):
+	            continue
+	        ret, frame = cam.read()
+                print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+	        img_to_write.append(frame)
+	        #img_name = "calib_image_fish_{}.png".format(img_counter)
+	        #cv2.imwrite(directory+'/'+img_name, frame)
+	        #print("Writing: {}".format(directory+'/'+img_name))
+	        
+	        #take_image = False
+	for frame in img_to_write:
+	    img_name = "calib_image_fish_{}.png".format(img_counter)
+	    cv2.imwrite(directory+'/'+img_name, frame)
+	    print("Writing: {}".format(directory+'/'+img_name))
+	    img_counter += 1
 	cam.release()
 
 def calibrate_images(CHECKERBOARD, directory):
