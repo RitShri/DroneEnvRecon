@@ -133,6 +133,12 @@ while(num_image<max_image):
             #print("R", R)
             #print("T", T)
             points1, points2 = corners_fisheye, corners_zed
+
+            #Project Points
+            # projectedFisheye, Jacobian = cv2.projectPoints(points1, K= K, D=D, )
+
+
+            #Get 3D Points
             
             P1 = np.zeros((3,4))
             P1[:3, :3] = np.eye(3)
