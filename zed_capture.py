@@ -89,6 +89,17 @@ def process_key_event(zed, key) :
         #count_save += 1
         #take_image = False
 
+        #Get R,T per frame
+        zed.get_position(zed_pose, sl.REFERENCE_FRAME.WORLD)
+        zed.get_sensors_data(zed_sensors, sl.TIME_REFERENCE.IMAGE)
+        
+        py_translation = sl.Translation()
+        translationMat = zed_pose.get_translation(py_translation).get()
+        py_rotation = sl.Rotation()
+        rotationMat = zed_pose.get_rotation(py_rotation).get()
+        print("Rotation {0}, Translation {1}".format(rotationMat, translationMat))
+
+
 def print_help() :
     print(" Press 's' to save Side by side images")
 
@@ -119,6 +130,18 @@ def main() :
     # Set runtime parameters after opening the camera
     runtime = sl.RuntimeParameters()
     runtime.sensing_mode = sl.SENSING_MODE.STANDARD
+
+    # Enable positional tracking with default parameters
+    tracking_parameters = sl.PositionalTrackingParameters()
+    err = zed.enable_positional_tracking(tracking_parameters)
+    if (err != sl.ERROR_CODE.SUCCESS):
+        exit(-1)
+    global zed_pose 
+    zed_pose = sl.Pose()
+    global zed_sensors
+    zed_sensors = sl.SensorsData()
+    global runtime_parameters
+    runtime_parameters = sl.RuntimeParameters()
 
     # Prepare new image size to retrieve half-resolution images
     image_size = zed.get_camera_information().camera_resolution
