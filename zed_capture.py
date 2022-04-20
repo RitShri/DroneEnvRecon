@@ -5,8 +5,6 @@ import cv2
 import time
 from pynput import keyboard
 import datetime
-import pause
-
 
 
 help_string = "[s] Save side by side image"
