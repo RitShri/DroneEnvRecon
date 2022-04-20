@@ -7,7 +7,6 @@ import time
 import os
 import sys
 from pynput import keyboard
-import pause
 
 """ 
 gstreamer_pipeline returns a GStreamer pipeline for capturing from the CSI camera

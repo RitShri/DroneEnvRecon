@@ -5,12 +5,14 @@ import cv2
 import time
 from pynput import keyboard
 import datetime
+import json
 
 
 help_string = "[s] Save side by side image"
 path = "./"
 
 count_save = 0
+dic_count = 0
 mode_point_cloud = 0
 mode_depth = 0
 point_cloud_format_ext = ".ply"
@@ -39,6 +41,7 @@ def on_press(key):
         print('Key pressed: ' + k)
         take_image = True
 
+r_t_dict =  {}
 listener = keyboard.Listener(on_press=on_press)
 listener.start()  # start to listen on a separate thread
 #listener.join()  # remove if main thread is polling self.keys
@@ -64,7 +67,7 @@ def save_point_cloud(zed, filename) :
 def write_point_cloud(zed, filename):
     global count_save
     for tmp in point_cloud_mats:
-        saved = (tmp.write("calib_zed"+'/'+filename + str(count_save) + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
+        saved = (tmp.write("data"+'/'+filename + str(count_save) + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
         count_save += 1
         if saved :
             print("Saved")
@@ -81,6 +84,7 @@ def save_sbs_image(zed, filename) :
 def process_key_event(zed, key) :
     global count_save
     global take_image
+    global dic_count
     #print(take_image)
     if key == 115 or take_image:
         save_point_cloud(zed, "calib_image_zed_" + str(count_save))
@@ -100,6 +104,10 @@ def process_key_event(zed, key) :
         #py_orientation = sl.Orientation()
         #orientationMat = zed_pose.get_orientation(py_orientation).get()
         print("Rotation {0}, Translation {1}".format(rotationMat, translationMat))
+        r_t_dict[dic_count] = [rotationMat.tolist(), translationMat.tolist()]
+        dic_count += 1
+        
+        
 
         #IMUOrient = zed_sensors.get_imu_data().get_pose().get_orientation().get()
         #IMUTrans = zed_sensors.get_imu_data().get_pose().get_translation().get()
@@ -111,18 +119,26 @@ def print_help() :
 
 
 def main() :
-    # Create a ZED camera object
-    zed = sl.Camera()
 
+    camNum = 0
+    
     # Set configuration parameters
     input_type = sl.InputType()
-    if len(sys.argv) >= 2 :
-        input_type.set_from_svo_file(sys.argv[1])
     init = sl.InitParameters(input_t=input_type)
     init.camera_resolution = sl.RESOLUTION.HD1080
     init.depth_mode = sl.DEPTH_MODE.PERFORMANCE
     init.coordinate_units = sl.UNIT.METER
-    #init.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_DOWN
+    #init.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_DOW
+    
+    cameras = sl.Camera.get_device_list()
+    print(cameras)
+    if len(sys.argv) >= 2:
+        camNum = int(sys.argv[1])
+    init.set_from_serial_number(cameras[camNum].serial_number)
+	
+        # Create a ZED camera object
+    zed = sl.Camera()
+
 
     # Open the camera
     err = zed.open(init)
@@ -184,8 +200,14 @@ def main() :
                 process_key_event(zed, key)
         if(break_loop):
             break
-    write_point_cloud(zed, "calib_image_zed_")
+    write_point_cloud(zed, "calib_image_zed_" + str(camNum))
     cv2.destroyAllWindows()
+    json_data = {}
+    json_data['R_T_DICT'] = r_t_dict
+    print(r_t_dict)
+    json_string = json.dumps(json_data)
+    with open('data/r_t_timestamps_zed.json', 'w') as  outfile:
+        outfile.write(json_string)
     zed.close()
 
     print("\nFINISH")

@@ -8,7 +8,7 @@ import CalibrationHelpers
 
 
 CHECKERBOARD = (6,9)
-CalibrationHelpers.CaptureImages('calib_fish')
+CalibrationHelpers.CaptureImages('data')
 #K, D, roi, new_intrinsics = CalibrationHelpers.calibrate_images(CHECKERBOARD, 'calib')
 #CalibrationHelpers.SaveCalibrationData('calib', K, D, roi, new_intrinsics)
 
