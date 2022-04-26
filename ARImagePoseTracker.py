@@ -47,8 +47,8 @@ def find_3d_points(points1, points2, P1, P2):
 #        print(reproj1, p1)
 #        print(reproj2, p2)
 
-        res_1 = np.linalg.norm(reproj1[:2]-p1)
-        res_2 = np.linalg.norm(reproj2[:2]-p2)
+        res_1 = np.linalg.norm(reproj1[:2]-p1)/len(p1)
+        res_2 = np.linalg.norm(reproj2[:2]-p2)/len(p2)
         rec_err.append(res_1)
         rec_err.append(res_2)
     

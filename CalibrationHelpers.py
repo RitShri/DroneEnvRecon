@@ -98,7 +98,7 @@ def CaptureImages(directory):
 	        while(datetime.datetime.utcnow() < critical_time):
 	            continue
 	        ret, frame = cam.read()
-                print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+            #print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
 	        img_to_write.append(frame)
 	        #img_name = "calib_image_fish_{}.png".format(img_counter)
 	        #cv2.imwrite(directory+'/'+img_name, frame)

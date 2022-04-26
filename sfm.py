@@ -135,6 +135,7 @@ while(fisheye.isOpened()):
                                                         current_keypoints,
                                                         relative_rotation,
                                                         relative_translation)
+                 # TODO: change the current image to the next image 
 #                M = get_M(K, matrix_matches)
 #                W,U,Vt = cv2.SVDecomp(M)
 #                depths = Vt[-1,:]/Vt[-1,-1]
