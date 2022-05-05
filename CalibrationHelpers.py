@@ -33,7 +33,12 @@ def on_press(key):
         break_loop = True
     if k in ['s']:
         print('Key pressed: ' + k)
-        take_image = True
+        if(take_image):
+            take_image = False
+        else:
+            time.sleep(1)
+            take_image = True
+        
 
 listener = keyboard.Listener(on_press=on_press)
 listener.start()  # start to listen on a separate thread
@@ -80,8 +85,9 @@ def CaptureImages(directory):
 	img_counter = 0
 	img_to_write = []
 	# Read until user quits
+        last_call = time.time()
 	while True:
-	    ret, frame = cam.read()
+            ret, frame = cam.read()
 	    if not ret:
 	        break
 	    # display the current image
@@ -93,13 +99,12 @@ def CaptureImages(directory):
 	        break
 	    elif k == 32 or take_image: #32 is ascii for space
 	        #record image
-	        critical_time = datetime.datetime.utcnow()+datetime.timedelta(seconds=1)
-	        critical_time.replace(microsecond=0)
-	        while(datetime.datetime.utcnow() < critical_time):
-	            continue
-	        ret, frame = cam.read()
-                print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
-	        img_to_write.append(frame)
+	        duration = time.time() - last_call
+                if duration > 1:
+                    last_call = time.time()
+	            ret, frame = cam.read()
+                    print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+	            img_to_write.append(frame)
 	        #img_name = "calib_image_fish_{}.png".format(img_counter)
 	        #cv2.imwrite(directory+'/'+img_name, frame)
 	        #print("Writing: {}".format(directory+'/'+img_name))

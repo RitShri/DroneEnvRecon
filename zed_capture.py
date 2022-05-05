@@ -58,7 +58,7 @@ def save_point_cloud(zed, filename) :
     point_cloud_mats.append(tmp)
     #print("Got Point Cloud in var...")
     '''
-    saved = (tmp.write("calib_zed"+'/'+filename + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
+    saved = (tmp.write("calib_zed_left"+'/'+filename + point_cloud_format_ext) == sl.ERROR_CODE.SUCCESS)
     if saved :
         print("Done")
     else :
@@ -87,12 +87,14 @@ def process_key_event(zed, key) :
     global dic_count
     #print(take_image)
     if key == 115 or take_image:
-        save_point_cloud(zed, "calib_image_zed_" + str(count_save))
+        #save_point_cloud(zed, "calib_image_zed_" + str(count_save))	#CHANGE THIS IF U WANT PCS
+	save_sbs_image(zed,"calib_image_zed_" + str(count_save)) 
+
         #count_save += 1
         #take_image = False
 
         #Get R,T per frame
-        zed.get_position(zed_pose, sl.REFERENCE_FRAME.CAMERA)
+        zed.get_position(zed_pose, sl.REFERENCE_FRAME.WORLD) #CAMERA
         zed.get_sensors_data(zed_sensors, sl.TIME_REFERENCE.IMAGE)
 
         py_translation = sl.Translation()
@@ -206,7 +208,7 @@ def main() :
     json_data['R_T_DICT'] = r_t_dict
     print(r_t_dict)
     json_string = json.dumps(json_data)
-    with open('data/r_t_timestamps_zed.json', 'w') as  outfile:
+    with open('calib_zed_left/r_t_timestamps_zed.json', 'w') as  outfile:
         outfile.write(json_string)
     zed.close()
 

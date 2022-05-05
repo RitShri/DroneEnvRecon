@@ -14,7 +14,7 @@ from pynput.keyboard import Key, Controller
 
 if __name__ == "__main__":
     #processes = [Popen(['python3 zed_capture.py 0'], stdin=PIPE,shell=True), Popen(['python3 zed_capture.py 1'], stdin=PIPE,shell=True), Popen(['python calibration.py'], stdin=PIPE,shell=True)]
-    processes = [Popen(['python3 zed_capture.py 0'], stdin=PIPE,shell=True), Popen(['python calibration.py'], stdin=PIPE,shell=True)]
+    processes = [Popen(['python3 zed_spatial_map.py'], stdin=PIPE,shell=True), Popen(['python calibration.py'], stdin=PIPE,shell=True)]
     '''
     time.sleep(30)
     keyboard = Controller()
