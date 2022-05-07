@@ -99,12 +99,13 @@ def CaptureImages(directory):
 	        break
 	    elif k == 32 or take_image: #32 is ascii for space
 	        #record image
-	        duration = time.time() - last_call
-                if duration > 1:
-                    last_call = time.time()
-	            ret, frame = cam.read()
-                    print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
-	            img_to_write.append(frame)
+	        critical_time = datetime.datetime.utcnow()+datetime.timedelta(seconds=1)
+	        critical_time.replace(microsecond=0)
+	        while(datetime.datetime.utcnow() < critical_time):
+	            continue
+	        ret, frame = cam.read()
+            #print("fish milli: ", datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+	        img_to_write.append(frame)
 	        #img_name = "calib_image_fish_{}.png".format(img_counter)
 	        #cv2.imwrite(directory+'/'+img_name, frame)
 	        #print("Writing: {}".format(directory+'/'+img_name))
